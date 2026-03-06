@@ -1,0 +1,52 @@
+# ── Ortam & Gizli Bilgiler ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Sanal Ortamlar ───────────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Proje Çıktıları ──────────────────────────────────────────────────────────
+output/
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
+*.h264
+
+# ── Log & Geçici Dosyalar ────────────────────────────────────────────────────
+*.log
+*.tmp
+*.bak
+logs/
+
+# ── IDE & OS ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# ── Raspberry Pi spesifik ────────────────────────────────────────────────────
+*.dtb
+*.dtbo
