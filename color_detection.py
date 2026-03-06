@@ -162,7 +162,7 @@ def main():
             frame_idx += 1
 
     except KeyboardInterrupt:
-        print("\n[INFO] Durduruldu.")
+        print("\n[INFO] Stoppped.")
     finally:
         cam.stop()
         cv2.destroyAllWindows()
