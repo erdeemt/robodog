@@ -1,0 +1,9 @@
+# Robodog - Raspberry Pi 4
+# pip install -r requirements.txt
+
+opencv-python                      # geliştirme: monitör bağlı (imshow çalışır)
+                                    # üretime geçince bunu kaldır, alttakini aç:
+# opencv-python-headless
+numpy>=1.26,<2.0
+picamera2>=0.3.19
+python-dotenv>=1.0
