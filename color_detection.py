@@ -116,8 +116,10 @@ def build_color_stats(frame: np.ndarray) -> dict:
 
 def init_camera() -> Picamera2:
     cam = Picamera2()
+    # picamera2 quirk: "RGB888" → numpy array'i BGR sırasında verir (OpenCV'nin beklediği).
+    # "BGR888" derseniz tersine RGB gelir ve cvtColor sonrası kırmızı↔mavi karışır.
     config = cam.create_preview_configuration(
-        main={"size": (FRAME_WIDTH, FRAME_HEIGHT), "format": "BGR888"}
+        main={"size": (FRAME_WIDTH, FRAME_HEIGHT), "format": "RGB888"}
     )
     cam.configure(config)
     cam.set_controls({"FrameRate": FPS})
