@@ -7,3 +7,4 @@ opencv-python                      # geliştirme: monitör bağlı (imshow çal�
 numpy>=1.26,<2.0
 picamera2>=0.3.19
 python-dotenv>=1.0
+pyserial>=3.5                       # Pi → Teensy 4.1 USB-Serial bridge
