@@ -156,11 +156,45 @@ static void handlePacket(const Packet &p) {
 // ─────────────────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
   stopMotors();
   // USB Serial bekleme (max 2s) — Pi tarafının açılmasını beklemiyoruz,
   // sadece host'un hazır olduğunu varsayıyoruz
   unsigned long t0 = millis();
   while (!Serial && (millis() - t0) < 2000) { /* spin */ }
+}
+
+// LED state göstergesi (debug):
+//   SAFE_STOP : sönük
+//   SEARCH    : yavaş yanıp sönüyor   (~1 Hz)
+//   TRACK     : hızlı yanıp sönüyor   (~5 Hz)
+//   ARRIVED   : sürekli yanıyor
+static void updateStateLed() {
+  static unsigned long last_toggle_ms = 0;
+  static bool led_on = false;
+
+  unsigned long period = 0;     // 0 = sabit
+  bool solid_on = false;
+
+  switch (state) {
+    case SAFE_STOP: solid_on = false;          break;
+    case SEARCH:    period   = 500;            break;  // 1 Hz toggle
+    case TRACK:     period   = 100;            break;  // 5 Hz toggle
+    case ARRIVED:   solid_on = true;           break;
+  }
+
+  if (period > 0) {
+    unsigned long now = millis();
+    if (now - last_toggle_ms >= period) {
+      last_toggle_ms = now;
+      led_on = !led_on;
+      digitalWrite(LED_BUILTIN, led_on ? HIGH : LOW);
+    }
+  } else {
+    digitalWrite(LED_BUILTIN, solid_on ? HIGH : LOW);
+    led_on = solid_on;
+  }
 }
 
 static String inBuf;
@@ -189,4 +223,6 @@ void loop() {
       stopMotors();
     }
   }
+
+  updateStateLed();
 }
