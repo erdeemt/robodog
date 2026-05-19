@@ -50,6 +50,17 @@ enum State { SEARCH, TRACK, ARRIVED, SAFE_STOP };
 static State state = SAFE_STOP;
 static unsigned long last_packet_ms = 0;
 
+// ── Paket struct ─────────────────────────────────────────────────────────
+// (Arduino IDE auto-prototyper'ın altta tanımlı struct'ı görmemesini
+//  engellemek için fonksiyonlardan ÖNCE tanımlı olması gerekir.)
+struct Packet {
+  int   status;
+  int   dx;
+  int   dy;
+  float dist_cm;
+  int   radius_px;
+};
+
 // ─────────────────────────────────────────────────────────────────────────
 //  Motor sürücü stub
 //  TODO: kendi motor kütüphanenize / inverse kinematics'inize bağlayın
@@ -72,13 +83,6 @@ static void stopMotors() {
 // ─────────────────────────────────────────────────────────────────────────
 //  Paket parser
 // ─────────────────────────────────────────────────────────────────────────
-struct Packet {
-  int   status;
-  int   dx;
-  int   dy;
-  float dist_cm;
-  int   radius_px;
-};
 
 // "F,1,+120,-5,52.3,28" → Packet
 static bool parsePacket(const String &line, Packet &p) {
