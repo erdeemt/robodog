@@ -239,8 +239,10 @@ def init_camera() -> Picamera2:
     cam = Picamera2()
     # picamera2 quirk: "RGB888" → numpy array'i BGR sırasında verir (OpenCV'nin beklediği).
     # "BGR888" yazılırsa tersine RGB gelir, cvtColor sonrası kırmızı↔mavi karışır.
+    # raw={"size": cam.sensor_resolution} → full FoV. Yoksa default crop yapıp zoomlu görünür.
     config = cam.create_preview_configuration(
-        main={"size": (FRAME_WIDTH, FRAME_HEIGHT), "format": "RGB888"}
+        main={"size": (FRAME_WIDTH, FRAME_HEIGHT), "format": "RGB888"},
+        raw={"size": cam.sensor_resolution}
     )
     cam.configure(config)
     cam.set_controls({"FrameRate": FPS})
