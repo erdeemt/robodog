@@ -1,0 +1,66 @@
+# Robodog Vision-Serial Bridge
+# Pi boot'ta otomatik başlar. Kameradan kırmızı topu tespit eder,
+# Teensy 4.1'e USB-Serial üzerinden paket yollar, VNC oturumunda
+# DISPLAY=:0 üzerinden cv2.imshow ile annotated kamera penceresi açar.
+#
+# KURULUM (Pi'de tek seferlik):
+#
+#   1) Önce manuel dene, çalıştığını doğrula:
+#        cd ~/robodog
+#        python serial_bridge.py --show
+#      (VNC ile bağlanıp masaüstünde pencere görmen lazım.)
+#
+#   2) Bu dosyadaki AŞAĞIDAKİ yolları kendi kurulumuna göre düzenle:
+#        - User=               → senin user adın (pi değilse değiştir)
+#        - WorkingDirectory=   → kodun bulunduğu dizin
+#        - ExecStart=          → python binary yolu (venv kullanıyorsan venv/bin/python)
+#
+#   3) Servisi kur:
+#        sudo cp ~/robodog/systemd/robodog-bridge.service /etc/systemd/system/
+#        sudo systemctl daemon-reload
+#        sudo systemctl enable robodog-bridge.service
+#        sudo systemctl start  robodog-bridge.service
+#
+#   4) Durumu izle:
+#        sudo systemctl status robodog-bridge
+#        journalctl -u robodog-bridge -f          # canlı log
+#
+#   5) Geçici durdur / tekrar başlat:
+#        sudo systemctl stop    robodog-bridge
+#        sudo systemctl restart robodog-bridge
+#
+#   6) Boot'tan kaldır:
+#        sudo systemctl disable robodog-bridge
+
+[Unit]
+Description=Robodog Vision-Serial Bridge (Pi → Teensy 4.1)
+# Network + VNC için kullanıcı oturumu hazır olsun
+After=network-online.target graphical.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# ── Düzenle: kendi user adın ve dizin yolların ────────────────────────────
+User=pi
+WorkingDirectory=/home/pi/robodog
+
+# Python yorumlayıcısı:
+#   • venv kullanıyorsan: /home/pi/robodog/venv/bin/python
+#   • sistem Python'u:    /usr/bin/python3
+ExecStart=/home/pi/robodog/venv/bin/python /home/pi/robodog/serial_bridge.py --show
+
+# cv2.imshow için DISPLAY (RealVNC service mode'da :0 hazır)
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+
+# Hata olursa 5 saniye sonra tekrar dene (USB kopması, kamera lock vs.)
+Restart=on-failure
+RestartSec=5
+
+# Çıktıları journalctl'e gönder
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=graphical.target

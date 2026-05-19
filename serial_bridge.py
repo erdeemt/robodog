@@ -24,6 +24,7 @@ import os
 import sys
 import time
 
+import cv2
 import serial
 from dotenv import load_dotenv
 
@@ -59,6 +60,42 @@ def make_packet(detection: dict | None) -> bytes:
     return f"F,1,{dx:+d},{dy:+d},{dist:.1f},{r}\n".encode("ascii")
 
 
+def annotate_frame(frame, detection, dist_cm, fps):
+    """--show modu için: tespit + HUD bilgilerini çerçeveye çiz."""
+    out = frame.copy()
+    h, w = out.shape[:2]
+    cx_frame, cy_frame = w // 2, h // 2
+
+    # Merkez crosshair
+    cv2.drawMarker(out, (cx_frame, cy_frame), (80, 80, 80),
+                   markerType=cv2.MARKER_CROSS, markerSize=20, thickness=1)
+    # Dead-band çizgileri (TURN_ONLY_FRAC ile aynı, %30)
+    side = int(w * 0.30 / 2)
+    cv2.line(out, (cx_frame - side, 0), (cx_frame - side, h), (100, 100, 100), 1)
+    cv2.line(out, (cx_frame + side, 0), (cx_frame + side, h), (100, 100, 100), 1)
+
+    if detection is not None:
+        cx, cy = detection["center"]
+        r = detection["radius_px"]
+        dx = cx - cx_frame
+        dy = cy - cy_frame
+
+        cv2.circle(out, (cx, cy), r, (0, 0, 255), 2)
+        cv2.circle(out, (cx, cy), 4, (0, 255, 255), -1)
+        cv2.line(out, (cx_frame, cy_frame), (cx, cy), (0, 255, 255), 1)
+
+        info1 = f"dist={dist_cm:.1f}cm  r={r}px"
+        info2 = f"dx={dx:+d}  dy={dy:+d}"
+        cv2.putText(out, info1, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        cv2.putText(out, info2, (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+    else:
+        cv2.putText(out, "NO BALL", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+    cv2.putText(out, f"{fps:.1f} fps", (w - 110, 25),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+    return out
+
+
 def open_serial(port: str, baud: int) -> serial.Serial | None:
     try:
         ser = serial.Serial(port, baud, timeout=0.1, write_timeout=0.5)
@@ -80,6 +117,8 @@ def main():
                         help="serial port açma, paketleri stdout'a bas")
     parser.add_argument("--verbose", action="store_true",
                         help="gönderilen her paketi logla")
+    parser.add_argument("--show", action="store_true",
+                        help="cv2.imshow ile annotated kamera penceresi aç (DISPLAY gerekir)")
     args = parser.parse_args()
 
     period = 1.0 / args.hz
@@ -96,6 +135,11 @@ def main():
 
     next_t = time.monotonic()
     last_status = -1   # log throttle için: sadece var/yok değişince bas
+
+    # FPS sayacı (--show için, kullanılmasa da overhead'i sıfır)
+    fps_frames = 0
+    fps_t0 = time.monotonic()
+    fps = 0.0
 
     try:
         while True:
@@ -119,6 +163,23 @@ def main():
                 sys.stdout.write(f"[bridge] {packet.decode('ascii')}")
                 sys.stdout.flush()
                 last_status = status_now
+
+            # FPS güncelle
+            fps_frames += 1
+            elapsed = time.monotonic() - fps_t0
+            if elapsed >= 1.0:
+                fps = fps_frames / elapsed
+                fps_frames = 0
+                fps_t0 = time.monotonic()
+
+            # Görüntü penceresi (opsiyonel)
+            if args.show:
+                dist_cm = estimate_distance(detection["radius_px"]) if detection else 0.0
+                annotated = annotate_frame(frame, detection, dist_cm, fps)
+                cv2.imshow("Robodog - Bridge", annotated)
+                if (cv2.waitKey(1) & 0xFF) == ord("q"):
+                    print("[bridge] 'q' basıldı, çıkılıyor...")
+                    break
 
             if args.dry_run:
                 continue
@@ -153,6 +214,8 @@ def main():
         capture_t.stop()
         capture_t.join(timeout=2)
         cam.stop()
+        if args.show:
+            cv2.destroyAllWindows()
         print("[bridge] kapandı.")
 
 
